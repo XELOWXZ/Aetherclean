@@ -39,8 +39,8 @@ A modern, high-performance desktop utility built with **Electron**, **TailwindCS
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/<your-username>/comclean.git
-cd comclean
+git clone https://github.com/XELOWXZ/Aetherclean.git
+cd Aetherclean
 ```
 
 ### 2. Install dependencies
