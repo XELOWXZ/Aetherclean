@@ -3696,6 +3696,22 @@
                     <span class="spec-label">รายละเอียดการอัปเดต:</span>
                     <span class="spec-value" id="app-release-notes-text" style="color: var(--text-muted); font-size: 12px;"></span>
                   </div>
+
+                  <!-- Cyber Download Progress Bar (หลอดสีแดง = รอโหลด, หลอดสีเขียว = โหลดแล้ว) -->
+                  <div id="update-download-progress-box" style="display: none; margin-top: 14px; padding: 12px 14px; background: rgba(5, 10, 18, 0.85); border: 1px solid rgba(0, 255, 102, 0.25); border-radius: var(--radius-md);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-family: var(--font-mono); font-size: 11.5px;">
+                      <span style="color: var(--matrix-green); display: flex; align-items: center; gap: 6px;">
+                        <span class="hud-dot"></span>
+                        <span id="update-progress-status">กำลังดาวน์โหลดตัวอัปเดต...</span>
+                      </span>
+                      <span id="update-progress-stats" style="color: #00f0ff;">0.0 MB / 0.0 MB (0%)</span>
+                    </div>
+
+                    <!-- Dual-Tone Bar: Red Track (หลอดสีแดง) with Green Fill (หลอดสีเขียว) -->
+                    <div class="update-progress-track" style="position: relative; width: 100%; height: 16px; background: rgba(239, 68, 68, 0.35); border: 1px solid rgba(239, 68, 68, 0.6); border-radius: 8px; overflow: hidden; box-shadow: inset 0 0 8px rgba(239, 68, 68, 0.4);">
+                      <div id="update-progress-fill" style="position: absolute; top: 0; left: 0; height: 100%; width: 0%; background: linear-gradient(90deg, #10b981 0%, #00ff66 100%); border-radius: 6px; box-shadow: 0 0 14px rgba(0, 255, 102, 0.8); transition: width 0.15s ease;"></div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -6258,7 +6274,28 @@
           if (!pendingDownloadUrl) return;
           btnInstallUpdate.disabled = true;
           btnInstallUpdate.textContent = '⏳ กำลังดาวน์โหลดและอัปเดต...';
+
+          const progressBox = document.getElementById('update-download-progress-box');
+          const progressFill = document.getElementById('update-progress-fill');
+          const progressStats = document.getElementById('update-progress-stats');
+          const progressStatus = document.getElementById('update-progress-status');
+          if (progressBox) progressBox.style.display = 'block';
+          if (progressFill) progressFill.style.width = '0%';
+          if (progressStats) progressStats.textContent = '0.0 MB / คำนวณขนาดไฟล์... (0%)';
+
           showToast('กำลังดาวน์โหลดตัวอัปเดต', 'ระบบกำลังดาวน์โหลดไฟล์ใหม่ และจะสลับเปิดโปรแกรมเวอร์ชันล่าสุดให้โดยอัตโนมัติ...', 'info', 7000);
+
+          if (window.electronAPI && typeof window.electronAPI.onUpdateDownloadProgress === 'function') {
+            window.electronAPI.onUpdateDownloadProgress((data) => {
+              if (progressFill) progressFill.style.width = `${data.percent}%`;
+              if (progressStats) {
+                progressStats.textContent = `${data.transferredMB} MB / ${data.totalMB} MB (${data.percent}%)`;
+              }
+              if (data.percent >= 100 && progressStatus) {
+                progressStatus.textContent = 'ดาวน์โหลดเสร็จสมบูรณ์ กำลังสลับไฟล์และเปิดโปรแกรมใหม่...';
+              }
+            });
+          }
 
           if (window.electronAPI && typeof window.electronAPI.installUpdate === 'function') {
             try {
@@ -6266,11 +6303,13 @@
               if (!res.success) {
                 btnInstallUpdate.disabled = false;
                 btnInstallUpdate.textContent = '⚡ อัปเดตทันที';
+                if (progressBox) progressBox.style.display = 'none';
                 showToast('อัปเดตไม่สำเร็จ', res.error, 'danger');
               }
             } catch (err) {
               btnInstallUpdate.disabled = false;
               btnInstallUpdate.textContent = '⚡ อัปเดตทันที';
+              if (progressBox) progressBox.style.display = 'none';
               showToast('ข้อผิดพลาด', err.message, 'danger');
             }
           }

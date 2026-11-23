@@ -1,14 +1,9 @@
 @echo off
 cd /d "%~dp0"
 title Building AetherClean Pro (Electron App)
-echo ================================================================
-echo    AetherClean Pro - Electron Executable Builder (.exe)
-echo ================================================================
-echo.
-echo [1/2] Building Modern Neon Cyberpunk UI Executable...
-call npm run build:portable
-echo.
+node build-runner.js
 if %errorlevel% equ 0 (
+    echo.
     echo ================================================================
     echo   [SUCCESS] Build completed successfully!
     echo   Executable is ready at:
@@ -16,6 +11,7 @@ if %errorlevel% equ 0 (
     echo     %~dp0dist_electron\win-unpacked\AetherClean Pro.exe
     echo ================================================================
 ) else (
+    echo.
     echo [ERROR] Build failed. Please check the logs above.
 )
 pause

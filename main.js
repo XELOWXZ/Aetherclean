@@ -1168,7 +1168,7 @@ ipcMain.handle('check-for-updates', async () => {
   }
 });
 
-ipcMain.handle('install-update', async (_, downloadUrl) => {
+ipcMain.handle('install-update', async (event, downloadUrl) => {
   if (!downloadUrl || !downloadUrl.startsWith('http')) {
     return { success: false, error: 'URL ดาวน์โหลดไม่ถูกต้อง หรือยังไม่ได้กำหนดลิงก์ใน GitHub Releases' };
   }
@@ -1177,24 +1177,60 @@ ipcMain.handle('install-update', async (_, downloadUrl) => {
     const tempExe = path.join(tempDir, 'AetherClean_new.exe');
     const updateBat = path.join(tempDir, 'aether_self_updater.bat');
     const currentExe = process.execPath;
+    const sender = event.sender;
 
-    // ดาวน์โหลดไฟล์ใหม่
+    // ดาวน์โหลดไฟล์ใหม่พร้อมรายงาน Progress Real-time
     await new Promise((resolve, reject) => {
       const file = fs.createWriteStream(tempExe);
-      const request = https.get(downloadUrl, (response) => {
-        if (response.statusCode === 301 || response.statusCode === 302) {
-          return https.get(response.headers.location, (redirectRes) => {
-            redirectRes.pipe(file);
-            file.on('finish', () => file.close(resolve));
-          }).on('error', reject);
-        }
-        response.pipe(file);
-        file.on('finish', () => file.close(resolve));
-      });
-      request.on('error', (err) => {
-        fs.unlink(tempExe, () => {});
-        reject(err);
-      });
+      
+      const downloadFile = (targetUrl) => {
+        https.get(targetUrl, (response) => {
+          if (response.statusCode === 301 || response.statusCode === 302) {
+            return downloadFile(response.headers.location);
+          }
+          if (response.statusCode !== 200) {
+            return reject(new Error(`Server returned HTTP ${response.statusCode}`));
+          }
+          
+          const totalBytes = parseInt(response.headers['content-length'] || '0', 10);
+          let transferredBytes = 0;
+
+          response.on('data', (chunk) => {
+            transferredBytes += chunk.length;
+            const percent = totalBytes > 0 ? Math.round((transferredBytes / totalBytes) * 100) : 0;
+            try {
+              sender.send('update-download-progress', {
+                transferredBytes,
+                totalBytes,
+                percent,
+                transferredMB: (transferredBytes / (1024 * 1024)).toFixed(1),
+                totalMB: (totalBytes / (1024 * 1024)).toFixed(1)
+              });
+            } catch (e) {}
+          });
+
+          response.pipe(file);
+          file.on('finish', () => {
+            file.close(() => {
+              try {
+                sender.send('update-download-progress', {
+                  transferredBytes: totalBytes,
+                  totalBytes,
+                  percent: 100,
+                  transferredMB: (totalBytes / (1024 * 1024)).toFixed(1),
+                  totalMB: (totalBytes / (1024 * 1024)).toFixed(1)
+                });
+              } catch (e) {}
+              resolve();
+            });
+          });
+        }).on('error', (err) => {
+          fs.unlink(tempExe, () => {});
+          reject(err);
+        });
+      };
+
+      downloadFile(downloadUrl);
     });
 
     // สร้าง Batch Script เพื่อรอปิดโปรแกรมเดิม -> สลับไฟล์ -> เปิดตัวใหม่
