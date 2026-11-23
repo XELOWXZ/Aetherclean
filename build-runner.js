@@ -27,8 +27,8 @@ if (!fs.existsSync(destDir)) {
 }
 
 const child = process.platform === 'win32'
-  ? spawn('cmd.exe', ['/c', 'npm', 'run', 'build:portable'], { cwd: __dirname, env })
-  : spawn('npm', ['run', 'build:portable'], { cwd: __dirname, env });
+  ? spawn('cmd.exe', ['/c', 'npx', 'electron-builder', '--win', 'portable', `--config.directories.output=${buildTempDir}`], { cwd: __dirname, env })
+  : spawn('npx', ['electron-builder', '--win', 'portable', `--config.directories.output=${buildTempDir}`], { cwd: __dirname, env });
 
 function formatProgressBar(str) {
   const match = str.match(/\[([=>\s]+)\]\s*(\d+)%\s*\|\s*(.*)/);
