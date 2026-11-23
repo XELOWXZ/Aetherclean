@@ -13,7 +13,7 @@
     "appId": "com.aetherclean.app",
     "productName": "AetherClean Pro",
     "directories": {
-      "output": "dist_electron"
+      "output": "C:/Users/Birdl/AppData/Local/Temp/aether_build"
     },
     "win": {
       "target": [

@@ -1,6 +1,8 @@
 // build-runner.js - Cyberpunk Build Runner with Neon Green & Red Progress Bars
 const { spawn } = require('child_process');
+const fs = require('fs');
 const path = require('path');
+const os = require('os');
 
 const greenColor = "\x1b[38;2;0;255;102m"; // Neon Cyber Green (หลอดสีเขียว)
 const redColor = "\x1b[38;2;239;68;68m";   // Cyber Alert Red (หลอดสีแดง)
@@ -17,19 +19,18 @@ console.log(`${cyanColor}[1/2]${reset} Spawning Electron Builder with Cyber Colo
 const env = Object.assign({}, process.env);
 delete env.ELECTRON_RUN_AS_NODE;
 
-const isWindows = process.platform === 'win32';
-const npmCmd = isWindows ? 'npm.cmd' : 'npm';
+const buildTempDir = "C:\\Users\\Birdl\\AppData\\Local\\Temp\\aether_build";
+const destDir = path.join(__dirname, 'dist_electron');
 
-const child = spawn(npmCmd, ['run', 'build:portable'], {
-  cwd: __dirname,
-  env,
-  shell: true
-});
+if (!fs.existsSync(destDir)) {
+  fs.mkdirSync(destDir, { recursive: true });
+}
+
+const child = process.platform === 'win32'
+  ? spawn('cmd.exe', ['/c', 'npm', 'run', 'build:portable'], { cwd: __dirname, env })
+  : spawn('npm', ['run', 'build:portable'], { cwd: __dirname, env });
 
 function formatProgressBar(str) {
-  // Matches progress lines like:
-  // [=========================>                 ] 55% | electron
-  // or [========================================] 100% | electron
   const match = str.match(/\[([=>\s]+)\]\s*(\d+)%\s*\|\s*(.*)/);
   if (match) {
     const percent = Math.min(100, Math.max(0, parseInt(match[2], 10)));
@@ -53,7 +54,7 @@ function handleData(chunk, isStderr = false) {
   buffer += text;
 
   const lines = buffer.split(/\r?\n|\r/);
-  buffer = lines.pop(); // keep last incomplete line
+  buffer = lines.pop();
 
   for (const line of lines) {
     const customBar = formatProgressBar(line);
@@ -86,5 +87,19 @@ child.on('close', (code) => {
     if (customBar) process.stdout.write(customBar + '\n');
     else process.stdout.write(buffer + '\n');
   }
+
+  if (code === 0) {
+    try {
+      const srcExe = path.join(buildTempDir, 'AetherClean Pro 1.0.0.exe');
+      const destExe = path.join(destDir, 'AetherClean Pro 1.0.0.exe');
+      if (fs.existsSync(srcExe)) {
+        fs.copyFileSync(srcExe, destExe);
+        console.log(`\n${greenColor}[SUCCESS]${reset} Output copied to: ${destExe}`);
+      }
+    } catch (e) {
+      console.warn('Note on copying artifact:', e.message);
+    }
+  }
+
   process.exit(code || 0);
 });

@@ -1,0 +1,17 @@
+{
+  "files.watcherExclude": {
+    "**/dist_electron/**": true,
+    "**/dist_release/**": true,
+    "**/dist/**": true,
+    "**/build/**": true,
+    "**/node_modules/**": true
+  },
+  "files.exclude": {
+    "**/dist_release/win-unpacked.tmp/**": true
+  },
+  "search.exclude": {
+    "**/dist_release/**": true,
+    "**/dist_electron/**": true,
+    "**/node_modules/**": true
+  }
+}

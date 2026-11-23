@@ -4,6 +4,7 @@ node_modules/
 # Production build outputs (อัปโหลดขึ้น GitHub Releases แทน)
 dist/
 dist_electron/
+dist_release/
 build/
 
 # Python cache & specs
