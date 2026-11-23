@@ -116,5 +116,6 @@ jobs:
       - name: Commit & Push Updated version.json
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
+          branch: main
           commit_message: "chore(release): update version.json for ${{ steps.get_version.outputs.TAG }} [skip ci]"
           file_pattern: 'version.json'
