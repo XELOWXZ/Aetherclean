@@ -2,18 +2,18 @@
 const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const os = require('os');
 
 const greenColor = "\x1b[38;2;0;255;102m"; // Neon Cyber Green (หลอดสีเขียว)
 const redColor = "\x1b[38;2;239;68;68m";   // Cyber Alert Red (หลอดสีแดง)
 const cyanColor = "\x1b[38;2;0;240;255m";  // Cyber Cyan
+const yellowColor = "\x1b[38;2;245;158;11m";
 const boldWhite = "\x1b[1;37m";
 const reset = "\x1b[0m";
 
 console.log(`${cyanColor}================================================================${reset}`);
 console.log(`${greenColor}   AetherClean Pro - Cyberpunk Executable Builder (.exe)${reset}`);
 console.log(`${cyanColor}================================================================${reset}`);
-console.log(`${cyanColor}[1/2]${reset} Spawning Electron Builder with Cyber Colored Download Stream...\n`);
+console.log(`${cyanColor}[1/2]${reset} Spawning Turbo Electron Builder...\n`);
 
 // Clean environment
 const env = Object.assign({}, process.env);
@@ -48,6 +48,27 @@ function formatProgressBar(str) {
 }
 
 let buffer = '';
+let spinnerTimer = null;
+let secondsElapsed = 0;
+const spinnerFrames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+let frameIdx = 0;
+
+function startSpinner() {
+  if (spinnerTimer) return;
+  spinnerTimer = setInterval(() => {
+    secondsElapsed++;
+    const frame = spinnerFrames[frameIdx++ % spinnerFrames.length];
+    process.stdout.write(`\r  ${greenColor}${frame}${reset} ${yellowColor}กำลังบีบอัดและรวมไฟล์เป็น Portable .exe... (${secondsElapsed}s)${reset}  `);
+  }, 1000);
+}
+
+function stopSpinner() {
+  if (spinnerTimer) {
+    clearInterval(spinnerTimer);
+    spinnerTimer = null;
+    process.stdout.write('\r                                                                 \r');
+  }
+}
 
 function handleData(chunk, isStderr = false) {
   const text = chunk.toString();
@@ -65,13 +86,18 @@ function handleData(chunk, isStderr = false) {
         process.stdout.write(`\n  ${cyanColor}• downloading${reset} ${line.replace(/.*• downloading\s*/, '')}\n`);
       } else if (line.includes('• packaging')) {
         process.stdout.write(`\n  ${greenColor}• packaging${reset} ${line.replace(/.*• packaging\s*/, '')}\n`);
+      } else if (line.includes('• building') && line.includes('target=portable')) {
+        process.stdout.write(`\n  ${cyanColor}• building${reset} ${line.replace(/.*• building\s*/, '')}\n`);
+        startSpinner();
       } else if (line.includes('• building')) {
         process.stdout.write(`\n  ${cyanColor}• building${reset} ${line.replace(/.*• building\s*/, '')}\n`);
       } else {
-        if (isStderr) {
-          process.stderr.write(line + '\n');
-        } else {
-          process.stdout.write(line + '\n');
+        if (!line.includes('no code signing certificate configured')) {
+          if (isStderr) {
+            process.stderr.write(line + '\n');
+          } else {
+            process.stdout.write(line + '\n');
+          }
         }
       }
     }
@@ -82,10 +108,11 @@ child.stdout.on('data', (d) => handleData(d, false));
 child.stderr.on('data', (d) => handleData(d, true));
 
 child.on('close', (code) => {
+  stopSpinner();
   if (buffer.trim()) {
     const customBar = formatProgressBar(buffer);
     if (customBar) process.stdout.write(customBar + '\n');
-    else process.stdout.write(buffer + '\n');
+    else if (!buffer.includes('no code signing')) process.stdout.write(buffer + '\n');
   }
 
   if (code === 0) {
@@ -94,7 +121,7 @@ child.on('close', (code) => {
       const destExe = path.join(destDir, 'AetherClean Pro 1.0.0.exe');
       if (fs.existsSync(srcExe)) {
         fs.copyFileSync(srcExe, destExe);
-        console.log(`\n${greenColor}[SUCCESS]${reset} Output copied to: ${destExe}`);
+        console.log(`\n${greenColor}[SUCCESS]${reset} บิลด์สำเร็จเรียบร้อย! Output อยู่ที่:\n  ${cyanColor}${destExe}${reset}`);
       }
     } catch (e) {
       console.warn('Note on copying artifact:', e.message);

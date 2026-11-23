@@ -12,6 +12,8 @@
   "build": {
     "appId": "com.aetherclean.app",
     "productName": "AetherClean Pro",
+    "npmRebuild": false,
+    "compression": "normal",
     "directories": {
       "output": "C:/Users/Birdl/AppData/Local/Temp/aether_build"
     },
