@@ -1,0 +1,120 @@
+name: Build & Release AetherClean Pro
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g. 1.0.1)'
+        required: true
+        default: '1.0.1'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Setup Python (for app icons)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Pillow & Build Icon
+        run: |
+          pip install pillow
+          python -c "from PIL import Image; img = Image.open('tray-icon.ico').convert('RGBA'); img.resize((256, 256), Image.Resampling.LANCZOS).save('app-icon.ico', format='ICO', sizes=[(256, 256), (128, 128), (64, 64), (48, 48), (32, 32), (16, 16)])"
+
+      - name: Compile C# Hardware Display Tuner
+        run: |
+          C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe /out:bin\AetherDisplayTuner.exe bin\AetherDisplayTuner.cs
+
+      - name: Install NPM Dependencies
+        run: npm install
+
+      - name: Build Electron Executable (Portable)
+        run: npm run build:portable
+
+      - name: Get Release Tag / Version
+        id: get_version
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "TAG=v${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+            echo "VER=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            TAG=${GITHUB_REF#refs/tags/}
+            VER=${TAG#v}
+            echo "TAG=$TAG" >> $GITHUB_OUTPUT
+            echo "VER=$VER" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create GitHub Release & Upload Asset
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.get_version.outputs.TAG }}
+          name: AetherClean Pro ${{ steps.get_version.outputs.TAG }}
+          body: |
+            ## ⚡ AetherClean Pro - ${{ steps.get_version.outputs.TAG }} Release
+            
+            - **Modern Cyberpunk UI**: Full hardware monitors, RAM booster, junk cleaner, and system tuner.
+            - **Gaming Display & Color Tuning**: Real-time multi-monitor Digital Vibrance + Brightness/Contrast/Gamma tuner.
+            - **Integrated Self-Updater**: One-click update engine.
+            
+            ### 📥 Download
+            Download the portable executable below and run directly without installation!
+          files: |
+            dist_electron/*.exe
+          draft: false
+          prerelease: false
+
+      - name: Update version.json with New Download URL
+        shell: bash
+        run: |
+          VER="${{ steps.get_version.outputs.VER }}"
+          TAG="${{ steps.get_version.outputs.TAG }}"
+          REPO="${{ github.repository }}"
+          DATE=$(date +'%Y-%m-%d')
+          
+          # หาชื่อไฟล์ exe ที่บิลด์ออกมา
+          EXE_NAME=$(ls dist_electron/*.exe | head -n 1 | xargs -n 1 basename)
+          DOWNLOAD_URL="https://github.com/${REPO}/releases/download/${TAG}/${EXE_NAME}"
+          
+          echo "Updating version.json to version ${VER}..."
+          cat <<EOF > version.json
+          {
+            "stable": {
+              "version": "${VER}",
+              "download_url": "${DOWNLOAD_URL}",
+              "release_notes": "AetherClean Pro ${TAG} - อัปเดตประสิทธิภาพและฟีเจอร์ใหม่ล่าสุด",
+              "pub_date": "${DATE}"
+            },
+            "beta": {
+              "version": "${VER}-beta.1",
+              "download_url": "${DOWNLOAD_URL}",
+              "release_notes": "AetherClean Pro Beta Preview",
+              "pub_date": "${DATE}"
+            }
+          }
+          EOF
+
+      - name: Commit & Push Updated version.json
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore(release): update version.json for ${{ steps.get_version.outputs.TAG }} [skip ci]"
+          file_pattern: 'version.json'

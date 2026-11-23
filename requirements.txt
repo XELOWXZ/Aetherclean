@@ -1,0 +1,4 @@
+# AetherClean Requirements
+# ติดตั้งด้วยคำสั่ง: pip install -r requirements.txt
+
+pyinstaller>=6.0.0

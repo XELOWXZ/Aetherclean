@@ -1,0 +1,15 @@
+# Dependencies
+node_modules/
+
+# Production build outputs (อัปโหลดขึ้น GitHub Releases แทน)
+dist/
+dist_electron/
+build/
+
+# Python cache & specs
+__pycache__/
+*.pyc
+*.spec
+
+# Logs & temp
+*.log

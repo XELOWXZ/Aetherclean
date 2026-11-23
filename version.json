@@ -1,0 +1,14 @@
+{
+  "stable": {
+    "version": "1.0.1",
+    "download_url": "https://github.com/XELINKZ/Aetherclean/releases/download/v1.0.1/AetherClean.Pro.1.0.1.exe",
+    "release_notes": "ปรับปรุงประสิทธิภาพ Multi-Monitor Gaming Color, แก้ไขระบบ Startup Apps และเพิ่มระบบ Self-Updater",
+    "pub_date": "2026-11-23"
+  },
+  "beta": {
+    "version": "1.1.0-beta.1",
+    "download_url": "https://github.com/XELINKZ/Aetherclean/releases/download/v1.1.0-beta.1/AetherClean.Pro.1.1.0-beta.1.exe",
+    "release_notes": "ทดสอบฟีเจอร์ใหม่ Auto-Update และ RAM Compression",
+    "pub_date": "2026-11-23"
+  }
+}
